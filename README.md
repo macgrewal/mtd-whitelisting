@@ -1,55 +1,61 @@
 ![Logo](resources/logo.png)
 
-## requirements
+# Requirements
 
-### python 3
+## python 3
 
-MAC OS
+**MAC OS**
 ```bash
 > brew install python3
 ```
 
-Linux
+**Linux**
 ```bash
 > sudo apt-get install python3
 ```
 
-### pip
+## pip
 
-MAC OS
-installed with brew install python3
+**MAC OS**
 
-Linux
+installed with python3
+
+**Linux**
 ```bash
 > sudo apt-get install python3-pip
 ```
 
-### virtualenv
+## virtualenv
 ```bash
 > sudo -H pip3 install virtualenv
 ``` 
 
-### hub
+## hub
 
-MAC OS
+**MAC OS**
 ```bash
 > brew install hub
 ```
 
-Linux
+**Linux**
 
-Download a binary release from [https://github.com/github/hub/releases](https://github.com/github/hub/releases)
+Download a binary release from [https://github.com/github/hub/releases](https://github.com/github/hub/releases) and add /bin/hub to your PATH
 
 or 
 
 ```bash
-# you will need the Go development environment
-> git clone https://github.com/github/hub.git && cd hub
+# for hub version 2.4.0 & linux 64-bit 
+> wget https://github.com/github/hub/releases/download/v2.4.0/hub-linux-amd64-2.4.0.tgz -P /tmp/hub && cd /tmp/hub
+> tar -xvzf hub-linux-*.tgz
 # assuming that `~/bin` is in your PATH:
-> script/build -o ~/bin/hub
+> sudo mv hub-linux-*/bin/hub ~/bin
+> rm -rf /tmp/hub
 ```
 
-## run
+# Run
+
 ```bash
+> git clone https://github.com/westwater/mtd-whitelisting.git
+> cd mtd-whitelisting
 > ./run.sh
 ```
