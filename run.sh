@@ -1,14 +1,24 @@
+
 echo "> creating virtualenv"
-sudo virtualenv -p python3 ./venv
+virtualenv -p python3 ./venv
 
-echo "> activating virtualenv"
-source venv/bin/activate
+if [ $? -eq 0 ];then
+    echo "> activating virtualenv"
+    source venv/bin/activate
 
-echo "> installing deps"
-sudo -H pip install -r requirements.txt
+    echo "> installing deps"
+    pip3 install -r requirements.txt
 
-echo "> whitelistings"
-python3 whitelist.py
+    echo "> whitelistings"
+    python3 whitelist.py
 
-echo "> deactivating virtualenv"
-deactivate
+    echo "> deactivating virtualenv"
+    deactivate
+
+    echo "> deleting virtual environment"
+    rm -rf venv
+else
+    echo "[ERROR] virtualenv failed - exiting"
+    echo "> deleting virtual environment"
+    rm -rf venv
+fi

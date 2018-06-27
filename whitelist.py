@@ -268,7 +268,7 @@ def whitelist(appConfigPath, whitelists):
             git.hub('pull-request -m %s' % commitMessage)
             print("----------")
     else:
-        print("[ERROR] missing directory: " + path)
+        print("[ERROR] missing directory: " + appConfigPath)
 
 
 def main():
@@ -281,8 +281,8 @@ def main():
     if len(prod_whitelists) > 0:
         print("> ids to whitelist for production: %d" % len(prod_whitelists))
         prod_path = WORKSPACE + "/app-config-production"
-        # whitelist(prod_path, prod_whitelists)
-        # update_confluence_table(prod_whitelist_url, prod_whitelists)
+        whitelist(prod_path, prod_whitelists)
+        update_confluence_table(prod_whitelist_url, prod_whitelists)
     else:
         print("> no whitelisting required for production")
 
@@ -293,10 +293,12 @@ def main():
     if len(et_whitelists) > 0:
         print("> ids to whitelist for external test: %d" % len(et_whitelists))
         et_path = WORKSPACE + "/app-config-externaltest"
-        # whitelist(et_path, et_whitelists)
-        # update_confluence_table(et_whitelist_url, et_whitelists)
+        whitelist(et_path, et_whitelists)
+        update_confluence_table(et_whitelist_url, et_whitelists)
     else:
         print("> no whitelisting required for ET")
+
+    print("> finished whitelisting")
 
 if __name__ == '__main__':
     main()
