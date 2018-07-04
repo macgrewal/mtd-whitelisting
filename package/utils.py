@@ -1,5 +1,5 @@
 def xstr(s):
-    # type: (str) -> str
+    # type: (any) -> str
     """
     Converts `s` into a blank string is it is None
     otherwise return `s`

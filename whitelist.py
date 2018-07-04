@@ -3,7 +3,6 @@ import os
 import re
 import json
 import requests
-import pprint
 import ruamel.yaml as yaml
 from getopt import getopt, GetoptError
 from requests.auth import HTTPBasicAuth
@@ -20,10 +19,10 @@ CONFLUENCE_HOST = None
 WORKSPACE = None
 
 # global variables
-confluence_username = None
-confluence_password = None
+CONFLUENCE_USER = None
+CONFLUENCE_PASS = None
 
-# options
+# CLI options
 TEST = False
 DEBUG = False
 
@@ -68,7 +67,7 @@ def http_get(url):
     with basic auth and returns the decoded body
     """
     print("> getting " + url)
-    response = requests.get(url, auth=HTTPBasicAuth(confluence_username, confluence_password))
+    response = requests.get(url, auth=HTTPBasicAuth(CONFLUENCE_USER, CONFLUENCE_PASS))
     if response.status_code == 401:
         print("[ERROR] 401 from confluence API, are your creds correct?")
         sys.exit()
@@ -201,10 +200,10 @@ def validate_confluence_creds():
     else:
         print("[STARTUP] confluence creds already in config")
 
-    global confluence_username
-    confluence_username = conf.get("confluence_username")
-    global confluence_password
-    confluence_password = conf.get("confluence_password")
+    global CONFLUENCE_USER
+    CONFLUENCE_USER = conf.get("confluence_username")
+    global CONFLUENCE_PASS
+    CONFLUENCE_PASS = conf.get("confluence_password")
 
 
 def update_confluence_table(url, whitelists):
@@ -240,7 +239,7 @@ def update_confluence_table(url, whitelists):
     else:
         resp = requests.put(url, body,
                             headers={"content-type":"application/json"},
-                            auth=HTTPBasicAuth(confluence_username, confluence_password))
+                            auth=HTTPBasicAuth(CONFLUENCE_USER, CONFLUENCE_PASS))
 
         if resp.status_code is 200:
             print("> updated confluence page to version %s" % (current_version + 1))
@@ -292,8 +291,9 @@ def whitelist(appConfigPath, whitelists):
 def validate_command_line_arguments():
     # type: () -> None
     """
-    Will inspect and validate the following command line options
+    Will inspect and validate the following command line options:
         (-t, --test) - enables test mode so calls to external services are stubbed
+        (-d, --debug) - enables debug mode to print out key information for debugging
     """
     try:
         opts, args = getopt(sys.argv[1:], "td", ["test", "debug"])

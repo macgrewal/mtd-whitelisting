@@ -36,13 +36,13 @@ if [ $? -eq 0 ];then
     echo "> starting whitelisting"
     python3 whitelist.py ${OPTIONS[@]}
 
-    echo "> deactivating virtualenv"
+    echo "[SHUTDOWN] deactivating virtualenv"
     deactivate
 
-    echo "> deleting virtual environment"
+    echo "[SHUTDOWN] deleting virtual environment"
     rm -rf venv
 else
     echo "[ERROR] virtualenv failed - exiting"
-    echo "> deleting virtual environment"
+    echo "[SHUTDOWN] deleting virtual environment"
     rm -rf venv
 fi

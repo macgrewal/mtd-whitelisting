@@ -57,5 +57,11 @@ or
 ```bash
 > git clone https://github.com/westwater/mtd-whitelisting.git
 > cd mtd-whitelisting
-> ./run.sh
+> ./run.sh [-t|--test] [-d|--debug]
+```
+
+## options
+```
+(-t|--test) - stubs writes to git and confluence
+(-d|--debug) - prints out key information for debugging
 ```
