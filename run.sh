@@ -1,3 +1,27 @@
+#!/usr/bin/env bash
+
+OPTIONS=()
+
+for key in "$@"; do
+    case ${key} in
+        -t|--test)
+        echo "> TEST mode enabled"
+        OPTIONS+=("--test")
+        shift # past argument
+        shift # past value
+        ;;
+        -d|--debug)
+        echo "> DEBUG mode enabled"
+        OPTIONS+=("--debug")
+        shift # past argument
+        shift # past value
+        ;;
+        *)
+        shift # past argument
+        shift # past value
+        ;;
+    esac
+done
 
 echo "> creating virtualenv"
 virtualenv -p python3 ./venv
@@ -9,8 +33,8 @@ if [ $? -eq 0 ];then
     echo "> installing deps"
     pip3 install -r requirements.txt
 
-    echo "> whitelistings"
-    python3 whitelist.py
+    echo "> starting whitelisting"
+    python3 whitelist.py ${OPTIONS[@]}
 
     echo "> deactivating virtualenv"
     deactivate

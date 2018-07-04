@@ -3,15 +3,16 @@ import os
 import re
 import json
 import requests
-import subprocess
+import pprint
 import ruamel.yaml as yaml
-from ruamel.yaml import YAML
+from getopt import getopt, GetoptError
 from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 from datetime import datetime
 from package.cd import cd
 from package.git import git
 from package.config import config
+from package.utils import xstr
 from getpass import getpass
 
 # environment variables
@@ -22,14 +23,19 @@ WORKSPACE = None
 confluence_username = None
 confluence_password = None
 
+# options
+TEST = False
+DEBUG = False
+
 # constants
-ET="external-test"
-PROD="production"
-VAT="vat-api"
-SA="self-assessment-api"
-CONFIG_WHITELIST_PREFIX="Prod.feature-switch.white-list.applicationIds."
-ET_WHITELIST_URI="/rest/api/content/106905709?expand=body.storage,version"
-PROD_WHITELIST_URI="/rest/api/content/106905712?expand=body.storage,version"
+ET = "external-test"
+PROD = "production"
+VAT = "vat-api"
+SA = "self-assessment-api"
+CONFIG_WHITELIST_PREFIX = "Prod.feature-switch.white-list.applicationIds."
+ET_WHITELIST_URI = "/rest/api/content/106905709?expand=body.storage,version"
+PROD_WHITELIST_URI = "/rest/api/content/106905712?expand=body.storage,version"
+
 
 def validate_environment_variables():
     # type: () -> None
@@ -52,7 +58,7 @@ def validate_environment_variables():
         print("[ERROR] environment variable WORKSPACE not set")
         sys.exit()
 
-    print("> env variables exist")
+    print("[STARTUP] env variables exist")
 
 
 def http_get(url):
@@ -63,10 +69,10 @@ def http_get(url):
     """
     print("> getting " + url)
     response = requests.get(url, auth=HTTPBasicAuth(confluence_username, confluence_password))
-    if(response.status_code == 401):
+    if response.status_code == 401:
         print("[ERROR] 401 from confluence API, are your creds correct?")
         sys.exit()
-    elif(response.status_code == 200):
+    elif response.status_code == 200:
         return response.content.decode()
     else:
         print("[ERROR] Unexpected response code from confluence API: " + response.status_code)
@@ -80,8 +86,8 @@ def get_whitelists_from_confluence(url):
     {"info": info, "id": whitelistId, "project": project}
     """
     response = http_get(url)
-    jsonResponse = json.loads(response)
-    html = jsonResponse["body"]["storage"]["value"]
+    json_response = json.loads(response)
+    html = json_response["body"]["storage"]["value"]
 
     soup = BeautifulSoup(html, "lxml")
     table = soup.find("table")
@@ -90,12 +96,18 @@ def get_whitelists_from_confluence(url):
 
     for row in table.findAll("tr"):
         cells = row.findAll("td", attrs={'data-highlight-colour': None})
-        if(len(cells) > 0):
-             info = cells[0].find(text=True) + " " + cells[1].find(text=True) + " " + cells[2].find(text=True)
-             whitelistId = cells[3].find(text=True)
-             project = cells[4].find(text=True)
-             whitelist = {"info":info, "id": whitelistId, "project": project}
-             whitelists.append(whitelist)
+        if len(cells) > 0:
+            email = cells[0].find(text=True)
+            vendor_name = cells[1].find(text=True)
+            dev_name = cells[2].find(text=True)
+            info = "%s %s %s" % (xstr(email), xstr(vendor_name), xstr(dev_name))
+            whitelistId = cells[3].find(text=True)
+            project = cells[4].find(text=True)
+            whitelist = {"info": info, "id": whitelistId, "project": project}
+            whitelists.append(whitelist)
+
+            if DEBUG:
+                print("[DEBUG] %s" % xstr(whitelist))
 
     return whitelists
 
@@ -135,7 +147,7 @@ def write_to_app_config(fileName, whitelist):
 
 
 def write_whitelists(whitelists):
-    # type: (list[dicts]) -> None
+    # type: (list[dict]) -> None
     """
     Writes the given `whitelists` to the correct project
     using the project key in the whitelist
@@ -143,14 +155,14 @@ def write_whitelists(whitelists):
     count = 1
     for whitelist in whitelists:
         project = whitelist["project"]
-        if(project == "SA"):
+        if project == "SA":
             print("> writing whitelist %d to %s" % (count, SA))
             count = count + 1
-        elif(project == "VAT"):
+        elif project == "VAT":
             print("> writing whitelist %d to %s" % (count, VAT))
             write_to_app_config(VAT, whitelist)
             count = count + 1
-        elif(project == "SA/VAT" or project == "VAT/SA"):
+        elif project == "SA/VAT" or project == "VAT/SA":
             print("> writing whitelist %d to %s" % (count, VAT))
             write_to_app_config(VAT, whitelist)
             print("> writing whitelist %d to %s" % (count, SA))
@@ -176,7 +188,7 @@ def validate_confluence_creds():
             password = getpass('enter confluence password [hidden]: ')
             response = requests.get(CONFLUENCE_HOST, auth=HTTPBasicAuth(username, password))
             if response.status_code == 200:
-                print("> valid confluence creds")
+                print("[STARTUP] valid confluence creds")
                 valid = True
             elif response.status_code == 401:
                 print("[ERROR] the username or password provided are wrong - retry")
@@ -187,28 +199,26 @@ def validate_confluence_creds():
         conf.insert("confluence_username", username)
         conf.insert("confluence_password", password)
     else:
-        print("> confluence creds already in config")
+        print("[STARTUP] confluence creds already in config")
 
-    global confluence_username 
+    global confluence_username
     confluence_username = conf.get("confluence_username")
     global confluence_password
     confluence_password = conf.get("confluence_password")
 
 
 def update_confluence_table(url, whitelists):
-    # type: (str, list[dicts]) -> None
+    # type: (str, list[dict]) -> None
     """
     Updates the confluence resource located at the given `url`
     by changing the colours of all the whitelisted ids to green
     """
     response = http_get(url)
-    jsonResponse = json.loads(response)
-    html = jsonResponse["body"]["storage"]["value"]
+    json_response = json.loads(response)
+    html = json_response["body"]["storage"]["value"]
 
     soup = BeautifulSoup(html, "lxml")
     table = soup.find("table")
-
-    # <td class="highlight-green" colspan="1" data-highlight-colour="green">
 
     for whitelist in whitelists:
         for row in table.findAll("tr"):
@@ -218,35 +228,39 @@ def update_confluence_table(url, whitelists):
                         cell_to_update['class'] = "highlight-green"
                         cell_to_update['data-highlight-colour'] = "green"
                         
-    jsonResponse["body"]["storage"]["value"] = str(soup.find("body").find("ac:layout"))
+    json_response["body"]["storage"]["value"] = str(soup.find("body").find("ac:layout"))
 
-    current_version = jsonResponse["version"]["number"]
-    jsonResponse["version"] = {'number': current_version + 1}
+    current_version = json_response["version"]["number"]
+    json_response["version"] = {'number': current_version + 1}
     
-    body = json.dumps(jsonResponse)
-    resp = requests.put(url, body,
-                        headers={"content-type":"application/json"},
-                        auth=HTTPBasicAuth(confluence_username, confluence_password))
-    
-    if resp.status_code is 200:
-        print("> updated confluence page to version %s" % (current_version + 1))
+    body = json.dumps(json_response)
+
+    if TEST:
+        print("[TEST] updating confluence page")
     else:
-        print("[ERROR] unknown status code when trying to update confluence page: %d" % resp.status_code)
+        resp = requests.put(url, body,
+                            headers={"content-type":"application/json"},
+                            auth=HTTPBasicAuth(confluence_username, confluence_password))
+
+        if resp.status_code is 200:
+            print("> updated confluence page to version %s" % (current_version + 1))
+        else:
+            print("[ERROR] unknown status code when trying to update confluence page: %d" % resp.status_code)
 
 
 def whitelist(appConfigPath, whitelists):
-    # type: (str, list[dicts]) -> None
+    # type: (str, list[dict]) -> None
     """
     Orchestrates the whitelisting of the given `whitelists`
     to the given `appConfigPath`
     """
-    if(os.path.exists(appConfigPath)):
+    if os.path.exists(appConfigPath):
         print("> navigating to " + appConfigPath)
         with cd(appConfigPath):
             print("> moving to master")
             git("checkout master --quiet")
             changes = git("diff --quiet HEAD")
-            if(changes == 1):
+            if changes == 1:
                 print("> untracked changes detected")
                 input("press ENTER to let me stash the changes, press Ctrl+C to exit")
                 print("> stashing changes")
@@ -259,21 +273,52 @@ def whitelist(appConfigPath, whitelists):
             git("checkout -b %s --quiet" % branch)
             write_whitelists(whitelists)
             date = datetime.now().strftime('%Y-%m-%d')
-            commitMessage = "mtd-whitelisting-%s" % date
-            print("> commiting and pushing")
-            git('commit -am "%s" --quiet' % commitMessage)
-            git("push origin %s --quiet" % branch)
-            print("> raising pull request")
-            print("----------")
-            git.hub('pull-request -m %s' % commitMessage)
-            print("----------")
+            commit_message = "mtd-whitelisting-%s" % date
+
+            if TEST:
+                print("[TEST] committing, pushing and pull request")
+            else:
+                print("> committing and pushing")
+                git('commit -am "%s" --quiet' % commit_message)
+                git("push origin %s --quiet" % branch)
+                print("> raising pull request")
+                print("----------")
+                git.hub('pull-request -m %s' % commit_message)
+                print("----------")
     else:
         print("[ERROR] missing directory: " + appConfigPath)
+
+
+def validate_command_line_arguments():
+    # type: () -> None
+    """
+    Will inspect and validate the following command line options
+        (-t, --test) - enables test mode so calls to external services are stubbed
+    """
+    try:
+        opts, args = getopt(sys.argv[1:], "td", ["test", "debug"])
+
+        for opt, arg in opts:
+            if opt in ('-t', "--test"):
+                print("[STARTUP] enabling test mode")
+                global TEST
+                TEST = True
+            if opt in ('-d', "--debug"):
+                print("[STARTUP] enabling debug mode")
+                global DEBUG
+                DEBUG = True
+
+    except GetoptError:
+        print("[ERROR] unknown arguments supplied")
+        sys.exit()
 
 
 def main():
     validate_environment_variables()
     validate_confluence_creds()
+    validate_command_line_arguments()
+
+    print("> checking production")
 
     prod_whitelist_url = CONFLUENCE_HOST + PROD_WHITELIST_URI
     prod_whitelists = get_whitelists_from_confluence(prod_whitelist_url)
@@ -286,7 +331,7 @@ def main():
     else:
         print("> no whitelisting required for production")
 
-    print("=========================================================================")
+    print("> checking ET")
 
     et_whitelist_url = CONFLUENCE_HOST + ET_WHITELIST_URI
     et_whitelists = get_whitelists_from_confluence(et_whitelist_url)
@@ -299,6 +344,7 @@ def main():
         print("> no whitelisting required for ET")
 
     print("> finished whitelisting")
+
 
 if __name__ == '__main__':
     main()
