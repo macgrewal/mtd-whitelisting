@@ -1,5 +1,6 @@
 import subprocess
 
+
 class git:
     """
     Generic git command executor using subprocesses
@@ -12,4 +13,3 @@ class git:
     @staticmethod
     def hub(commands):
         return subprocess.call(["hub"] + commands.split())
-    
