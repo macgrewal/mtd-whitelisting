@@ -1,22 +1,24 @@
-import configparser
-import os
-from .cd import cd
 import subprocess
+from whitelisting.cd import cd
+try:
+    import configparser as configparser
+except ImportError:
+    import ConfigParser as configparser
 
-class config:
+
+class Config:
     """Configuration manager for storing a retreiving credentials"""
     def __init__(self):
         _config = configparser.ConfigParser()
         self._config = _config
         config_file = _config.read("/etc/.creds")
-        if(len(config_file) == 0):
+        if len(config_file) == 0:
             print("> /etc/.creds file does not exist")
             input("press ENTER to let me create /etc/.creds, press Ctrl+C to exit")
             print("> creating /etc/.creds file")
             with cd("/etc"):
                 subprocess.call(["sudo", "touch", ".creds"])
                 subprocess.call(["sudo", "chmod", "777", ".creds"])
-
 
     def insert(self, key, value):
         if self._config.has_section("configuration") is False:
@@ -35,7 +37,3 @@ class config:
             return self._config.get("configuration", key)
         else:
             return None
-
-
-
-    

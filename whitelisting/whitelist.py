@@ -8,10 +8,10 @@ from getopt import getopt, GetoptError
 from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 from datetime import datetime
-from package.cd import cd
-from package.git import git
-from package.config import config
-from package.utils import xstr
+from whitelisting.cd import cd
+from whitelisting.git import git
+from whitelisting.config import Config
+from whitelisting.utils import xstr
 from getpass import getpass
 
 # environment variables
@@ -27,7 +27,7 @@ TEST = False
 DEBUG = False
 
 # constants
-ET = "external-test"
+ET = "external-tests"
 PROD = "production"
 VAT = "vat-api"
 SA = "self-assessment-api"
@@ -74,7 +74,7 @@ def http_get(url):
     elif response.status_code == 200:
         return response.content.decode()
     else:
-        print("[ERROR] Unexpected response code from confluence API: " + response.status_code)
+        print("[ERROR] Unexpected response code from confluence API: %s" % response.status_code)
         sys.exit()
 
 
@@ -100,9 +100,9 @@ def get_whitelists_from_confluence(url):
             vendor_name = cells[1].find(text=True)
             dev_name = cells[2].find(text=True)
             info = "%s %s %s" % (xstr(email), xstr(vendor_name), xstr(dev_name))
-            whitelistId = cells[3].find(text=True)
+            whitelist_id = cells[3].find(text=True)
             project = cells[4].find(text=True)
-            whitelist = {"info": info, "id": whitelistId, "project": project}
+            whitelist = {"info": info, "id": whitelist_id, "project": project}
             whitelists.append(whitelist)
 
             if DEBUG:
@@ -115,15 +115,19 @@ def get_next_config_id(config):
     # type: (dict) -> str
     """
     Will iterate through the given `config` items
-    to find the last id used and return the next id to use
+    to find the last id used and return the next id to use.
+    If no config ids currently exist, will return '0'
     """
-    currentIds = list()
-    for key, value in config.items() :
+    current_config_ids = list()
+    for key, value in config.items():
         if re.search(CONFIG_WHITELIST_PREFIX, key) is not None:
-            ids = int(re.split(CONFIG_WHITELIST_PREFIX, key)[1])
-            currentIds.append(ids)
+            config_id = int(re.split(CONFIG_WHITELIST_PREFIX, key)[1])
+            current_config_ids.append(config_id)
 
-    return str(max(currentIds) + 1)
+    if len(current_config_ids) > 0:
+        return str(max(current_config_ids) + 1)
+    else:
+        return '0'
 
 
 def write_to_app_config(fileName, whitelist):
@@ -178,7 +182,10 @@ def validate_confluence_creds():
     Checks local storage for confluence creds
     If absent, requests them from user and validates
     """
-    conf = config()
+    conf = Config()
+    username = None
+    password = None
+
     if conf.get("confluence_username") is None:
         print("> setting up confluence creds")
         valid = False
@@ -250,7 +257,7 @@ def update_confluence_table(url, whitelists):
 def whitelist(appConfigPath, whitelists):
     # type: (str, list[dict]) -> None
     """
-    Orchestrates the whitelisting of the given `whitelists`
+    Orchestrates the Whitelisting of the given `whitelists`
     to the given `appConfigPath`
     """
     if os.path.exists(appConfigPath):
@@ -268,11 +275,11 @@ def whitelist(appConfigPath, whitelists):
             git("pull origin master --quiet")
             print("> checking out branch")
             dt = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-            branch = "mtd-prod-whitelisting-%s" % dt
+            branch = "mtd-prod-Whitelisting-%s" % dt
             git("checkout -b %s --quiet" % branch)
             write_whitelists(whitelists)
             date = datetime.now().strftime('%Y-%m-%d')
-            commit_message = "mtd-whitelisting-%s" % date
+            commit_message = "mtd-Whitelisting-%s" % date
 
             if TEST:
                 print("[TEST] committing, pushing and pull request")
@@ -292,15 +299,15 @@ def validate_command_line_arguments():
     # type: () -> None
     """
     Will inspect and validate the following command line options:
-        (-t, --test) - enables test mode so calls to external services are stubbed
+        (-t, --tests) - enables tests mode so calls to external services are stubbed
         (-d, --debug) - enables debug mode to print out key information for debugging
     """
     try:
-        opts, args = getopt(sys.argv[1:], "td", ["test", "debug"])
+        opts, args = getopt(sys.argv[1:], "td", ["tests", "debug"])
 
         for opt, arg in opts:
-            if opt in ('-t', "--test"):
-                print("[STARTUP] enabling test mode")
+            if opt in ('-t', "--tests"):
+                print("[STARTUP] enabling tests mode")
                 global TEST
                 TEST = True
             if opt in ('-d', "--debug"):
@@ -329,22 +336,18 @@ def main():
         whitelist(prod_path, prod_whitelists)
         update_confluence_table(prod_whitelist_url, prod_whitelists)
     else:
-        print("> no whitelisting required for production")
+        print("> no Whitelisting required for production")
 
     print("> checking ET")
 
     et_whitelist_url = CONFLUENCE_HOST + ET_WHITELIST_URI
     et_whitelists = get_whitelists_from_confluence(et_whitelist_url)
     if len(et_whitelists) > 0:
-        print("> ids to whitelist for external test: %d" % len(et_whitelists))
+        print("> ids to whitelist for external tests: %d" % len(et_whitelists))
         et_path = WORKSPACE + "/app-config-externaltest"
         whitelist(et_path, et_whitelists)
         update_confluence_table(et_whitelist_url, et_whitelists)
     else:
-        print("> no whitelisting required for ET")
+        print("> no Whitelisting required for ET")
 
-    print("> finished whitelisting")
-
-
-if __name__ == '__main__':
-    main()
+    print("> finished Whitelisting")
