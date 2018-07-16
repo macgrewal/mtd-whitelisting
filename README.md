@@ -1,5 +1,7 @@
 ![Logo](resources/logo.png)
 
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/Django.svg)
+
 # Requirements
 
 ## python 3
@@ -47,8 +49,8 @@ or
 # for hub version 2.4.0 & linux 64-bit 
 > wget https://github.com/github/hub/releases/download/v2.4.0/hub-linux-amd64-2.4.0.tgz -P /tmp/hub && cd /tmp/hub
 > tar -xvzf hub-linux-*.tgz
-# assuming that `~/bin` is in your PATH:
-> sudo mv hub-linux-*/bin/hub ~/bin
+# assuming that `/usr/local/bin` is in your PATH:
+> sudo mv hub-linux-*/bin/hub /usr/local/bin
 > rm -rf /tmp/hub
 ```
 
@@ -57,5 +59,20 @@ or
 ```bash
 > git clone https://github.com/westwater/mtd-whitelisting.git
 > cd mtd-whitelisting
-> ./run.sh
+> ./run.sh [-t|--test] [-d|--debug]
+```
+
+## options
+```
+(-t|--test) - stubs writes to git and confluence
+(-d|--debug) - prints out key information for debugging
+```
+
+# Test
+```bash
+# unit tests
+> python -m pytest -v
+
+# full test suite
+> tox
 ```

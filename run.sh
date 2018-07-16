@@ -30,19 +30,14 @@ if [ $? -eq 0 ];then
     echo "> activating virtualenv"
     source venv/bin/activate
 
-    echo "> installing deps"
-    pip3 install -r requirements.txt
+    echo "> installing dependencies"
+    pip3 install --upgrade --quiet -r requirements.txt
 
-    echo "> starting whitelisting"
-    python3 whitelist.py ${OPTIONS[@]}
+    echo "> starting Whitelisting"
+    python3 main.py ${OPTIONS[@]}
 
-    echo "> deactivating virtualenv"
+    echo "[SHUTDOWN] deactivating virtualenv"
     deactivate
-
-    echo "> deleting virtual environment"
-    rm -rf venv
 else
     echo "[ERROR] virtualenv failed - exiting"
-    echo "> deleting virtual environment"
-    rm -rf venv
 fi
