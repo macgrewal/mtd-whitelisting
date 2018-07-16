@@ -27,7 +27,7 @@ TEST = False
 DEBUG = False
 
 # constants
-ET = "external-tests"
+ET = "external-test"
 PROD = "production"
 VAT = "vat-api"
 SA = "self-assessment-api"
@@ -160,6 +160,7 @@ def write_whitelists(whitelists):
         project = whitelist["project"]
         if project == "SA":
             print("> writing whitelist %d to %s" % (count, SA))
+            write_to_app_config(SA, whitelist)
             count = count + 1
         elif project == "VAT":
             print("> writing whitelist %d to %s" % (count, VAT))
@@ -299,15 +300,15 @@ def validate_command_line_arguments():
     # type: () -> None
     """
     Will inspect and validate the following command line options:
-        (-t, --tests) - enables tests mode so calls to external services are stubbed
+        (-t, --test) - enables test mode so calls to external services are stubbed
         (-d, --debug) - enables debug mode to print out key information for debugging
     """
     try:
-        opts, args = getopt(sys.argv[1:], "td", ["tests", "debug"])
+        opts, args = getopt(sys.argv[1:], "td", ["test", "debug"])
 
         for opt, arg in opts:
-            if opt in ('-t', "--tests"):
-                print("[STARTUP] enabling tests mode")
+            if opt in ('-t', "--test"):
+                print("[STARTUP] enabling test mode")
                 global TEST
                 TEST = True
             if opt in ('-d', "--debug"):
@@ -343,7 +344,7 @@ def main():
     et_whitelist_url = CONFLUENCE_HOST + ET_WHITELIST_URI
     et_whitelists = get_whitelists_from_confluence(et_whitelist_url)
     if len(et_whitelists) > 0:
-        print("> ids to whitelist for external tests: %d" % len(et_whitelists))
+        print("> ids to whitelist for external test: %d" % len(et_whitelists))
         et_path = WORKSPACE + "/app-config-externaltest"
         whitelist(et_path, et_whitelists)
         update_confluence_table(et_whitelist_url, et_whitelists)

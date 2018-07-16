@@ -4,8 +4,7 @@ from whitelisting import whitelist
 try:
     from unittest.mock import patch, MagicMock
 except ImportError:
-    from unittest.mock import MagicMock
-    from unittest.mock import patch
+    from mock import patch, MagicMock
 
 
 @patch.object(requests, 'get')

@@ -6,7 +6,7 @@ for key in "$@"; do
     case ${key} in
         -t|--test)
         echo "> TEST mode enabled"
-        OPTIONS+=("--tests")
+        OPTIONS+=("--test")
         shift # past argument
         shift # past value
         ;;

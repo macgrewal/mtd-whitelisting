@@ -1,5 +1,6 @@
 .idea
 package-lock.json
+tests/reports/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -44,7 +45,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
-nosetests.xml
+nosetest.xml
 coverage.xml
 *.cover
 .hypothesis/
