@@ -9,9 +9,10 @@ from requests.auth import HTTPBasicAuth
 from bs4 import BeautifulSoup
 from datetime import datetime
 from whitelisting.cd import cd
-from whitelisting.git import git
+from whitelisting.git import Git
 from whitelisting.config import Config
 from whitelisting.utils import xstr
+from whitelisting import env
 from getpass import getpass
 
 # environment variables
@@ -43,19 +44,11 @@ def validate_environment_variables():
         - confluence host name
         - workspace
     """
-    if "CONFLUENCE_HOST" in os.environ:
-        global CONFLUENCE_HOST
-        CONFLUENCE_HOST = os.environ.get("CONFLUENCE_HOST")
-    else:
-        print("[ERROR] environment variable CONFLUENCE_HOST not set")
-        sys.exit()
-    
-    if "WORKSPACE" in os.environ:
-        global WORKSPACE
-        WORKSPACE = os.environ.get("WORKSPACE")
-    else:
-        print("[ERROR] environment variable WORKSPACE not set")
-        sys.exit()
+    global CONFLUENCE_HOST
+    CONFLUENCE_HOST = env.get("CONFLUENCE_HOST")
+
+    global WORKSPACE
+    WORKSPACE = env.get("WORKSPACE")
 
     print("[STARTUP] env variables exist")
 
@@ -130,23 +123,23 @@ def get_next_config_id(config):
         return '0'
 
 
-def write_to_app_config(fileName, whitelist):
+def write_to_app_config(file_name, whitelist):
     # type: (str, dict) -> None
     """
     Writes the id from the given `whitelist` dict
-    to the given `fileName` yaml file
+    to the given `file_name` yaml file
     """
-    with open(fileName + ".yaml", "r") as read_yaml_file:
-        appConfig = yaml.round_trip_load(read_yaml_file)
-        hmrcConfig = appConfig['0.0.0']['hmrc_config']
-        nextConfigId = get_next_config_id(dict(hmrcConfig))
+    with open(file_name + ".yaml", "r") as read_yaml_file:
+        app_config = yaml.round_trip_load(read_yaml_file)
+        hmrc_config = app_config['0.0.0']['hmrc_config']
+        next_config_id = get_next_config_id(dict(hmrc_config))
 
-    with open(fileName + ".yaml", "w") as write_yaml_file:
-        hmrcConfig[CONFIG_WHITELIST_PREFIX + nextConfigId] = str(whitelist['id'])
-        hmrcConfig.yaml_set_comment_before_after_key(key=(CONFIG_WHITELIST_PREFIX + nextConfigId),
-                                                     before=whitelist["info"],
-                                                     indent=4)
-        yaml.round_trip_dump(appConfig, write_yaml_file)
+    with open(file_name + ".yaml", "w") as write_yaml_file:
+        hmrc_config[CONFIG_WHITELIST_PREFIX + next_config_id] = str(whitelist['id'])
+        hmrc_config.yaml_set_comment_before_after_key(key=(CONFIG_WHITELIST_PREFIX + next_config_id),
+                                                      before=whitelist["info"],
+                                                      indent=4)
+        yaml.round_trip_dump(app_config, write_yaml_file)
 
 
 def write_whitelists(whitelists):
@@ -255,29 +248,29 @@ def update_confluence_table(url, whitelists):
             print("[ERROR] unknown status code when trying to update confluence page: %d" % resp.status_code)
 
 
-def whitelist(appConfigPath, whitelists):
+def whitelist(app_config_path, whitelists):
     # type: (str, list[dict]) -> None
     """
     Orchestrates the Whitelisting of the given `whitelists`
-    to the given `appConfigPath`
+    to the given `app_config_path`
     """
-    if os.path.exists(appConfigPath):
-        print("> navigating to " + appConfigPath)
-        with cd(appConfigPath):
+    if os.path.exists(app_config_path):
+        print("> navigating to " + app_config_path)
+        with cd(app_config_path):
             print("> moving to master")
-            git("checkout master --quiet")
-            changes = git("diff --quiet HEAD")
+            Git("checkout master --quiet")
+            changes = Git("diff --quiet HEAD")
             if changes == 1:
                 print("> untracked changes detected")
                 input("press ENTER to let me stash the changes, press Ctrl+C to exit")
                 print("> stashing changes")
-                git("stash --quiet")
+                Git("stash --quiet")
             print("> pulling latest master")
-            git("pull origin master --quiet")
+            Git("pull origin master --quiet")
             print("> checking out branch")
             dt = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
             branch = "mtd-prod-Whitelisting-%s" % dt
-            git("checkout -b %s --quiet" % branch)
+            Git("checkout -b %s --quiet" % branch)
             write_whitelists(whitelists)
             date = datetime.now().strftime('%Y-%m-%d')
             commit_message = "mtd-Whitelisting-%s" % date
@@ -286,14 +279,14 @@ def whitelist(appConfigPath, whitelists):
                 print("[TEST] committing, pushing and pull request")
             else:
                 print("> committing and pushing")
-                git('commit -am "%s" --quiet' % commit_message)
-                git("push origin %s --quiet" % branch)
+                Git('commit -am "%s" --quiet' % commit_message)
+                Git("push origin %s --quiet" % branch)
                 print("> raising pull request")
                 print("----------")
-                git.hub('pull-request -m %s' % commit_message)
+                Git.hub('pull-request -m %s' % commit_message)
                 print("----------")
     else:
-        print("[ERROR] missing directory: " + appConfigPath)
+        print("[ERROR] missing directory: " + app_config_path)
 
 
 def validate_command_line_arguments():

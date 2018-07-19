@@ -1,13 +1,14 @@
 import subprocess
 from whitelisting.cd import cd
+
 try:
     import configparser as configparser
 except ImportError:
     import ConfigParser as configparser
 
 
-class Config:
-    """Configuration manager for storing a retreiving credentials"""
+class Config(object):
+    """Configuration manager for storing a retrieving credentials"""
     def __init__(self):
         _config = configparser.ConfigParser()
         self._config = _config

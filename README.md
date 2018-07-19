@@ -70,9 +70,11 @@ or
 
 # Test
 ```bash
-# unit tests
-> python -m pytest -v
-
-# full test suite
 > tox
 ```
+
+> ##### Note
+>
+> if using pyenv you will need to load multiple versions to test against both 3.5 and 2.7
+>
+>       > pyenv global 3.5.0 2.7.6
