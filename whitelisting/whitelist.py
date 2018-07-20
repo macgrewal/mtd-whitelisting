@@ -12,6 +12,7 @@ from whitelisting.cd import cd
 from whitelisting.git import Git
 from whitelisting.config import Config
 from whitelisting.utils import xstr
+from whitelisting.utils import normalise
 from whitelisting import env
 from getpass import getpass
 
@@ -89,12 +90,12 @@ def get_whitelists_from_confluence(url):
     for row in table.findAll("tr"):
         cells = row.findAll("td", attrs={'data-highlight-colour': None})
         if len(cells) > 0:
-            email = cells[0].find(text=True)
-            vendor_name = cells[1].find(text=True)
-            dev_name = cells[2].find(text=True)
-            info = "%s %s %s" % (xstr(email), xstr(vendor_name), xstr(dev_name))
-            whitelist_id = cells[3].find(text=True)
-            project = cells[4].find(text=True)
+            email = normalise(cells[0].find(text=True)).strip()
+            vendor_name = normalise(cells[1].find(text=True)).strip()
+            dev_name = normalise(cells[2].find(text=True)).strip()
+            info = "%s, %s, %s" % (xstr(email), xstr(vendor_name), xstr(dev_name))
+            whitelist_id = normalise(cells[3].find(text=True)).strip()
+            project = normalise(cells[4].find(text=True)).strip()
             whitelist = {"info": info, "id": whitelist_id, "project": project}
             whitelists.append(whitelist)
 
@@ -166,7 +167,7 @@ def write_whitelists(whitelists):
             write_to_app_config(SA, whitelist)
             count = count + 1
         else:
-            print("[ERROR] invalid project fetched from confluence table")
+            print("[ERROR] invalid project fetched from confluence table : %s" % project)
             sys.exit()
 
 
