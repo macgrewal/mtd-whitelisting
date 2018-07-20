@@ -24,17 +24,17 @@ for key in "$@"; do
 done
 
 echo "> creating virtualenv"
-virtualenv -p python3 ./venv
+virtualenv -p python ./venv
 
 if [ $? -eq 0 ];then
     echo "> activating virtualenv"
     source venv/bin/activate
 
     echo "> installing dependencies"
-    pip3 install --upgrade --quiet -r requirements.txt
+    pip install --upgrade --quiet -r requirements.txt
 
     echo "> starting Whitelisting"
-    python3 main.py ${OPTIONS[@]}
+    python main.py ${OPTIONS[@]}
 
     echo "[SHUTDOWN] deactivating virtualenv"
     deactivate
