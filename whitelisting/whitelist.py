@@ -32,8 +32,9 @@ DEBUG = False
 ET = "external-test"
 PROD = "production"
 VAT = "vat-api"
-SA = "self-assessment-api"
-CONFIG_WHITELIST_PREFIX = "Prod.feature-switch.white-list.applicationIds."
+SA = "self-assessment-api-router"
+VAT_CONFIG_WHITELIST_PREFIX = "Prod.feature-switch.white-list.applicationIds."
+SA_CONFIG_WHITELIST_PREFIX = "feature-switch.white-list.applicationIds."
 ET_WHITELIST_URI = "/rest/api/content/106905709?expand=body.storage,version"
 PROD_WHITELIST_URI = "/rest/api/content/106905712?expand=body.storage,version"
 
@@ -105,17 +106,22 @@ def get_whitelists_from_confluence(url):
     return whitelists
 
 
-def get_next_config_id(config):
+def get_next_config_id(file_name, config):
     # type: (dict) -> str
     """
     Will iterate through the given `config` items
     to find the last id used and return the next id to use.
     If no config ids currently exist, will return '0'
     """
+    if file_name == SA:
+        prefix = SA_CONFIG_WHITELIST_PREFIX
+    else:
+        prefix = VAT_CONFIG_WHITELIST_PREFIX
+
     current_config_ids = list()
     for key, value in config.items():
-        if re.search(CONFIG_WHITELIST_PREFIX, key) is not None:
-            config_id = int(re.split(CONFIG_WHITELIST_PREFIX, key)[1])
+        if re.search(prefix, key) is not None:
+            config_id = int(re.split(prefix, key)[1])
             current_config_ids.append(config_id)
 
     if len(current_config_ids) > 0:
@@ -133,11 +139,16 @@ def write_to_app_config(file_name, whitelist):
     with open(file_name + ".yaml", "r") as read_yaml_file:
         app_config = yaml.round_trip_load(read_yaml_file)
         hmrc_config = app_config['0.0.0']['hmrc_config']
-        next_config_id = get_next_config_id(dict(hmrc_config))
+        next_config_id = get_next_config_id(file_name, dict(hmrc_config))
 
     with open(file_name + ".yaml", "w") as write_yaml_file:
-        hmrc_config[CONFIG_WHITELIST_PREFIX + next_config_id] = str(whitelist['id'])
-        hmrc_config.yaml_set_comment_before_after_key(key=(CONFIG_WHITELIST_PREFIX + next_config_id),
+        if file_name == SA:
+            prefix = SA_CONFIG_WHITELIST_PREFIX
+        else:
+            prefix = VAT_CONFIG_WHITELIST_PREFIX
+
+        hmrc_config[prefix + next_config_id] = str(whitelist['id'])
+        hmrc_config.yaml_set_comment_before_after_key(key=(prefix + next_config_id),
                                                       before=whitelist["info"],
                                                       indent=4)
         yaml.round_trip_dump(app_config, write_yaml_file)
